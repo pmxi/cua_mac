@@ -267,18 +267,13 @@ class MacComputerBackend:
 
     def move(self, x_px: float, y_px: float) -> None:
         point = self._to_event_point(x_px, y_px)
-        event = Quartz.CGEventCreateMouseEvent(
-            None,
-            Quartz.kCGEventMouseMoved,
-            point,
-            Quartz.kCGMouseButtonLeft,
-        )
-        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+        self._move_cursor(point)
         self._sleep_after_action()
 
     def click(self, x_px: float, y_px: float, button: str = "left") -> None:
         mouse_button, down_type, up_type, _ = self._button_types(button)
         point = self._to_event_point(x_px, y_px)
+        self._move_cursor(point)
         self._post_mouse_event(down_type, point, mouse_button, click_state=1)
         self._post_mouse_event(up_type, point, mouse_button, click_state=1)
         self._sleep_after_action()
@@ -286,6 +281,7 @@ class MacComputerBackend:
     def double_click(self, x_px: float, y_px: float, button: str = "left") -> None:
         mouse_button, down_type, up_type, _ = self._button_types(button)
         point = self._to_event_point(x_px, y_px)
+        self._move_cursor(point)
         self._post_mouse_event(down_type, point, mouse_button, click_state=1)
         self._post_mouse_event(up_type, point, mouse_button, click_state=1)
         time.sleep(0.05)
@@ -299,20 +295,17 @@ class MacComputerBackend:
 
         mouse_button, down_type, up_type, drag_type = self._button_types(button)
         start = self._to_event_point(path[0]["x"], path[0]["y"])
-        self._post_mouse_event(
-            Quartz.kCGEventMouseMoved,
-            start,
-            mouse_button,
-            click_state=1,
-        )
+        self._move_cursor(start)
         self._post_mouse_event(down_type, start, mouse_button, click_state=1)
 
         for point_data in path[1:]:
             point = self._to_event_point(point_data["x"], point_data["y"])
+            self._move_cursor(point)
             self._post_mouse_event(drag_type, point, mouse_button, click_state=1)
             time.sleep(0.01)
 
         end = self._to_event_point(path[-1]["x"], path[-1]["y"])
+        self._move_cursor(end)
         self._post_mouse_event(up_type, end, mouse_button, click_state=1)
         self._sleep_after_action()
 
@@ -419,6 +412,10 @@ class MacComputerBackend:
     def _to_event_point(self, x_px: float, y_px: float) -> tuple[float, float]:
         scale = self.geometry.scale_factor
         return (float(x_px) / scale, float(y_px) / scale)
+
+    def _move_cursor(self, point: tuple[float, float]) -> None:
+        Quartz.CGWarpMouseCursorPosition(point)
+        Quartz.CGAssociateMouseAndMouseCursorPosition(True)
 
     def _sleep_after_action(self) -> None:
         if self.action_delay_seconds > 0:

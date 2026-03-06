@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+from cua_mac.mac import MacComputerBackend
 from cua_mac.loop import run_computer_loop
 from cua_mac.models import Screenshot
 
@@ -139,6 +140,42 @@ class RunComputerLoopTests(unittest.TestCase):
                 prompt="Do the thing",
                 max_turns=1,
             )
+
+
+class MacComputerBackendTests(unittest.TestCase):
+    def test_keypress_accepts_sequence_of_plain_keys(self):
+        backend = MacComputerBackend.__new__(MacComputerBackend)
+        pressed = []
+        backend._press_key_chord = lambda primary_key, modifiers: pressed.append(
+            (primary_key, list(modifiers))
+        )
+        backend._sleep_after_action = lambda: None
+
+        backend.keypress(["1", "7", "*", "2", "4", "="])
+
+        self.assertEqual(
+            pressed,
+            [
+                ("1", []),
+                ("7", []),
+                ("*", []),
+                ("2", []),
+                ("4", []),
+                ("=", []),
+            ],
+        )
+
+    def test_keypress_keeps_modifier_chords(self):
+        backend = MacComputerBackend.__new__(MacComputerBackend)
+        pressed = []
+        backend._press_key_chord = lambda primary_key, modifiers: pressed.append(
+            (primary_key, list(modifiers))
+        )
+        backend._sleep_after_action = lambda: None
+
+        backend.keypress(["command", "a"])
+
+        self.assertEqual(pressed, [("a", ["command"])])
 
 
 if __name__ == "__main__":

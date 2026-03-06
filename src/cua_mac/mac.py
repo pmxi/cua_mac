@@ -240,6 +240,16 @@ class MacComputerBackend:
         else:
             raise ValueError(f"Unsupported computer action: {action_type}")
 
+    def ensure_accessibility_access(self) -> None:
+        if Quartz.AXIsProcessTrusted():
+            return
+
+        raise RuntimeError(
+            "macOS Accessibility access is not granted for the app driving this run. "
+            "Grant Accessibility to the terminal app launching `uv` "
+            "(for example Ghostty, Terminal, or iTerm) and rerun."
+        )
+
     def move(self, x_px: float, y_px: float) -> None:
         point = self._to_event_point(x_px, y_px)
         event = Quartz.CGEventCreateMouseEvent(
@@ -319,21 +329,28 @@ class MacComputerBackend:
 
         normalized_keys = [normalize_key_name(key) for key in keys if key.strip()]
         modifiers: list[str] = []
-        primary_key: str | None = None
-        implicit_shift = False
+        primary_keys: list[str] = []
 
         for key in normalized_keys:
             if key in MODIFIER_FLAGS:
                 modifiers.append(key)
                 continue
 
-            if primary_key is not None:
-                raise ValueError(f"Unsupported key combination: {keys}")
-            primary_key = key
+            if len(key) > 1 and key not in SPECIAL_KEYCODE_BY_NAME:
+                primary_keys.extend(list(key))
+            else:
+                primary_keys.append(key)
 
-        if primary_key is None:
+        if not primary_keys:
             raise ValueError(f"Unsupported key combination: {keys}")
 
+        for primary_key in primary_keys:
+            self._press_key_chord(primary_key, modifiers)
+
+        self._sleep_after_action()
+
+    def _press_key_chord(self, primary_key: str, modifiers: list[str]) -> None:
+        implicit_shift = False
         keycode: int | None = SPECIAL_KEYCODE_BY_NAME.get(primary_key)
         if keycode is None:
             if primary_key in SHIFTED_KEYCODE_BY_CHAR:
@@ -348,11 +365,12 @@ class MacComputerBackend:
         if keycode is None:
             raise ValueError(f"Unsupported key: {primary_key}")
 
-        if implicit_shift and "shift" not in modifiers:
-            modifiers.append("shift")
+        active_modifiers = list(modifiers)
+        if implicit_shift and "shift" not in active_modifiers:
+            active_modifiers.append("shift")
 
         flags = 0
-        for modifier in modifiers:
+        for modifier in active_modifiers:
             flags |= MODIFIER_FLAGS[modifier]
 
         key_down = Quartz.CGEventCreateKeyboardEvent(None, keycode, True)
@@ -362,7 +380,6 @@ class MacComputerBackend:
         key_up = Quartz.CGEventCreateKeyboardEvent(None, keycode, False)
         Quartz.CGEventSetFlags(key_up, flags)
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, key_up)
-        self._sleep_after_action()
 
     def _button_types(self, button: str) -> tuple[int, int, int, int]:
         normalized = str(button).lower()

@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "run":
+        backend.ensure_accessibility_access()
         client = OpenAI()
         result = run_computer_loop(
             backend=backend,

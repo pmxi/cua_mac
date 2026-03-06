@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from typing import Any, Callable
 
 
@@ -85,10 +86,7 @@ def run_computer_loop(
                 raise RuntimeError("Pending safety checks are not implemented in this MVP.")
 
             actions = computer_call.get("actions", [])
-            logger(
-                f"Turn {turn}.{index} actions: "
-                f"{' -> '.join(action.get('type', '?') for action in actions) or 'none'}"
-            )
+            logger(f"Turn {turn}.{index} actions: {format_actions(actions)}")
             call_id = computer_call.get("call_id")
             if not call_id:
                 raise RuntimeError("Computer call did not include a call_id.")
@@ -143,3 +141,11 @@ def extract_final_message(payload: dict[str, Any]) -> str:
             if text:
                 parts.append(text)
     return "\n\n".join(parts)
+
+
+def format_actions(actions: list[dict[str, Any]]) -> str:
+    summary = " -> ".join(action.get("type", "?") for action in actions) or "none"
+    payload = json.dumps(actions, separators=(",", ":"))
+    if len(payload) <= 400:
+        return f"{summary} :: {payload}"
+    return f"{summary} :: {payload[:397]}..."

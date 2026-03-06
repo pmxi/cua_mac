@@ -5,7 +5,7 @@ from pathlib import Path
 
 from cua_mac.mac import MacComputerBackend
 from cua_mac.loop import run_computer_loop
-from cua_mac.models import Screenshot
+from cua_mac.models import DisplayGeometry, Screenshot
 
 
 class FakeResponse:
@@ -143,6 +143,18 @@ class RunComputerLoopTests(unittest.TestCase):
 
 
 class MacComputerBackendTests(unittest.TestCase):
+    def test_to_event_point_uses_screenshot_scale_and_clamps(self):
+        backend = MacComputerBackend.__new__(MacComputerBackend)
+        backend.geometry = DisplayGeometry(
+            width_points=1512.0,
+            height_points=982.0,
+            width_px=3024,
+            height_px=1964,
+            scale_factor=2.0,
+        )
+
+        self.assertEqual(backend._to_event_point(1854, 2118), (927.0, 981.5))
+
     def test_keypress_accepts_sequence_of_plain_keys(self):
         backend = MacComputerBackend.__new__(MacComputerBackend)
         pressed = []

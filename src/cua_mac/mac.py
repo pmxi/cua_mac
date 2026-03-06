@@ -176,10 +176,9 @@ class MacComputerBackend:
             raise RuntimeError("Could not determine the main macOS screen.")
 
         frame = main_screen.frame()
-        display_id = Quartz.CGMainDisplayID()
-        width_px = Quartz.CGDisplayPixelsWide(display_id)
-        height_px = Quartz.CGDisplayPixelsHigh(display_id)
-        scale_factor = width_px / frame.size.width
+        scale_factor = float(main_screen.backingScaleFactor())
+        width_px = int(round(float(frame.size.width) * scale_factor))
+        height_px = int(round(float(frame.size.height) * scale_factor))
 
         return DisplayGeometry(
             width_points=float(frame.size.width),
@@ -410,12 +409,18 @@ class MacComputerBackend:
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 
     def _to_event_point(self, x_px: float, y_px: float) -> tuple[float, float]:
+        x_px, y_px = self._clamp_screenshot_point(x_px, y_px)
         scale = self.geometry.scale_factor
         return (float(x_px) / scale, float(y_px) / scale)
 
     def _move_cursor(self, point: tuple[float, float]) -> None:
         Quartz.CGWarpMouseCursorPosition(point)
         Quartz.CGAssociateMouseAndMouseCursorPosition(True)
+
+    def _clamp_screenshot_point(self, x_px: float, y_px: float) -> tuple[float, float]:
+        clamped_x = min(max(float(x_px), 0.0), float(self.geometry.width_px - 1))
+        clamped_y = min(max(float(y_px), 0.0), float(self.geometry.height_px - 1))
+        return (clamped_x, clamped_y)
 
     def _sleep_after_action(self) -> None:
         if self.action_delay_seconds > 0:

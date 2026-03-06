@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import ctypes
 import subprocess
 import time
 from pathlib import Path
@@ -10,6 +11,10 @@ from AppKit import NSScreen
 import Quartz
 
 from cua_mac.models import DisplayGeometry, Screenshot
+
+APPLICATION_SERVICES_PATH = (
+    "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices"
+)
 
 US_KEYCODE_BY_CHAR = {
     "a": 0,
@@ -241,7 +246,7 @@ class MacComputerBackend:
             raise ValueError(f"Unsupported computer action: {action_type}")
 
     def ensure_accessibility_access(self) -> None:
-        if Quartz.AXIsProcessTrusted():
+        if self._is_accessibility_trusted():
             return
 
         raise RuntimeError(
@@ -249,6 +254,16 @@ class MacComputerBackend:
             "Grant Accessibility to the terminal app launching `uv` "
             "(for example Ghostty, Terminal, or iTerm) and rerun."
         )
+
+    def _is_accessibility_trusted(self) -> bool:
+        try:
+            app_services = ctypes.CDLL(APPLICATION_SERVICES_PATH)
+            app_services.AXIsProcessTrusted.restype = ctypes.c_bool
+            app_services.AXIsProcessTrusted.argtypes = []
+            return bool(app_services.AXIsProcessTrusted())
+        except Exception:
+            # If the trust probe itself is unavailable, do not block the run.
+            return True
 
     def move(self, x_px: float, y_px: float) -> None:
         point = self._to_event_point(x_px, y_px)

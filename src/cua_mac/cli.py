@@ -11,6 +11,8 @@ from openai import OpenAI
 from cua_mac.mac import MacComputerBackend
 from cua_mac.loop import run_computer_loop
 
+DEFAULT_MAX_TURNS = 200
+
 
 def default_artifact_dir() -> Path:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -43,7 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run one local computer-use task against the current macOS desktop.",
     )
     run_parser.add_argument("prompt", help="Task prompt sent to the model.")
-    run_parser.add_argument("--max-turns", type=int, default=24, help="Maximum loop turns.")
+    run_parser.add_argument(
+        "--max-turns",
+        type=int,
+        default=DEFAULT_MAX_TURNS,
+        help="Maximum loop turns before forcing exit.",
+    )
     run_parser.add_argument("--model", default="gpt-5.4", help="Responses API model name.")
     run_parser.add_argument(
         "--action-delay-ms",

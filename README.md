@@ -36,7 +36,7 @@ Optional flags:
 ```bash
 uv run python -m cua_mac run \
   --model gpt-5.4 \
-  --max-turns 24 \
+  --max-turns 200 \
   --action-delay-ms 120 \
   "Open Calculator and compute 17 * 24"
 ```

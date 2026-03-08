@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import unittest
-from unittest import mock
 from pathlib import Path
 
 from cua_mac.mac import MacComputerBackend
@@ -190,29 +189,44 @@ class MacComputerBackendTests(unittest.TestCase):
 
         self.assertEqual(pressed, [("a", ["command"])])
 
-    def test_type_text_pastes_via_clipboard_and_restores_clipboard(self):
+    def test_type_text_uses_keycodes_for_supported_characters(self):
         backend = MacComputerBackend.__new__(MacComputerBackend)
         pressed = []
         backend._press_key_chord = lambda primary_key, modifiers: pressed.append(
             (primary_key, list(modifiers))
         )
+        backend._type_unicode_character = lambda character: self.fail(
+            f"Unexpected unicode fallback for {character!r}"
+        )
         backend._sleep_after_action = lambda: None
 
-        with mock.patch("cua_mac.mac.subprocess.run") as run:
-            run.side_effect = [
-                mock.Mock(stdout=b"previous clipboard"),
-                mock.Mock(),
-                mock.Mock(),
-            ]
+        backend.type_text("Ab*\n\t")
 
-            backend.type_text("hello world")
+        self.assertEqual(
+            pressed,
+            [
+                ("A", []),
+                ("b", []),
+                ("*", []),
+                ("enter", []),
+                ("tab", []),
+            ],
+        )
 
-        self.assertEqual(pressed, [("v", ["command"])])
-        self.assertEqual(run.call_args_list[0].args[0], ["pbpaste"])
-        self.assertEqual(run.call_args_list[1].args[0], ["pbcopy"])
-        self.assertEqual(run.call_args_list[1].kwargs["input"], b"hello world")
-        self.assertEqual(run.call_args_list[2].args[0], ["pbcopy"])
-        self.assertEqual(run.call_args_list[2].kwargs["input"], b"previous clipboard")
+    def test_type_text_falls_back_to_unicode_for_unsupported_characters(self):
+        backend = MacComputerBackend.__new__(MacComputerBackend)
+        pressed = []
+        unicode_chars = []
+        backend._press_key_chord = lambda primary_key, modifiers: pressed.append(
+            (primary_key, list(modifiers))
+        )
+        backend._type_unicode_character = lambda character: unicode_chars.append(character)
+        backend._sleep_after_action = lambda: None
+
+        backend.type_text("a🙂")
+
+        self.assertEqual(pressed, [("a", [])])
+        self.assertEqual(unicode_chars, ["🙂"])
 
 
 if __name__ == "__main__":

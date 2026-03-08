@@ -320,36 +320,15 @@ class MacComputerBackend:
         self._sleep_after_action()
 
     def type_text(self, text: str) -> None:
-        if not text:
-            return
-
-        previous_clipboard: bytes | None = None
-        try:
-            previous_clipboard = subprocess.run(
-                ["pbpaste"],
-                capture_output=True,
-                check=True,
-            ).stdout
-        except subprocess.CalledProcessError:
-            previous_clipboard = None
-
-        try:
-            subprocess.run(
-                ["pbcopy"],
-                check=True,
-                input=text.encode("utf-8"),
-            )
-            self._press_key_chord("v", ["command"])
-        finally:
-            if previous_clipboard is not None:
-                try:
-                    subprocess.run(
-                        ["pbcopy"],
-                        check=True,
-                        input=previous_clipboard,
-                    )
-                except subprocess.CalledProcessError:
-                    pass
+        for character in text:
+            if character == "\n" or character == "\r":
+                self._press_key_chord("enter", [])
+            elif character == "\t":
+                self._press_key_chord("tab", [])
+            elif self._can_type_with_keycode(character):
+                self._press_key_chord(character, [])
+            else:
+                self._type_unicode_character(character)
         self._sleep_after_action()
 
     def keypress(self, keys: list[str]) -> None:
@@ -443,6 +422,23 @@ class MacComputerBackend:
         clamped_x = min(max(float(x_px), 0.0), float(self.geometry.width_px - 1))
         clamped_y = min(max(float(y_px), 0.0), float(self.geometry.height_px - 1))
         return (clamped_x, clamped_y)
+
+    def _can_type_with_keycode(self, character: str) -> bool:
+        if character in SHIFTED_KEYCODE_BY_CHAR:
+            return True
+        if len(character) != 1:
+            return False
+        lookup_char = character.lower()
+        return lookup_char in US_KEYCODE_BY_CHAR
+
+    def _type_unicode_character(self, character: str) -> None:
+        key_down = Quartz.CGEventCreateKeyboardEvent(None, 0, True)
+        Quartz.CGEventKeyboardSetUnicodeString(key_down, len(character), character)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, key_down)
+
+        key_up = Quartz.CGEventCreateKeyboardEvent(None, 0, False)
+        Quartz.CGEventKeyboardSetUnicodeString(key_up, len(character), character)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, key_up)
 
     def _sleep_after_action(self) -> None:
         if self.action_delay_seconds > 0:

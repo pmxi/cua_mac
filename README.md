@@ -8,7 +8,7 @@ Here's an example command:
 uv run python -m cua_mac run "Open Firefox and navigate to Hacker News"
 ```
 
-Demo:
+Demo (sending an email)
 
 
 

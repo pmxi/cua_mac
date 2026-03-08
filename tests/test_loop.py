@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from cua_mac.mac import MacComputerBackend
@@ -188,6 +189,30 @@ class MacComputerBackendTests(unittest.TestCase):
         backend.keypress(["command", "a"])
 
         self.assertEqual(pressed, [("a", ["command"])])
+
+    def test_type_text_pastes_via_clipboard_and_restores_clipboard(self):
+        backend = MacComputerBackend.__new__(MacComputerBackend)
+        pressed = []
+        backend._press_key_chord = lambda primary_key, modifiers: pressed.append(
+            (primary_key, list(modifiers))
+        )
+        backend._sleep_after_action = lambda: None
+
+        with mock.patch("cua_mac.mac.subprocess.run") as run:
+            run.side_effect = [
+                mock.Mock(stdout=b"previous clipboard"),
+                mock.Mock(),
+                mock.Mock(),
+            ]
+
+            backend.type_text("hello world")
+
+        self.assertEqual(pressed, [("v", ["command"])])
+        self.assertEqual(run.call_args_list[0].args[0], ["pbpaste"])
+        self.assertEqual(run.call_args_list[1].args[0], ["pbcopy"])
+        self.assertEqual(run.call_args_list[1].kwargs["input"], b"hello world")
+        self.assertEqual(run.call_args_list[2].args[0], ["pbcopy"])
+        self.assertEqual(run.call_args_list[2].kwargs["input"], b"previous clipboard")
 
 
 if __name__ == "__main__":

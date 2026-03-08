@@ -320,14 +320,36 @@ class MacComputerBackend:
         self._sleep_after_action()
 
     def type_text(self, text: str) -> None:
-        for character in text:
-            key_down = Quartz.CGEventCreateKeyboardEvent(None, 0, True)
-            Quartz.CGEventKeyboardSetUnicodeString(key_down, len(character), character)
-            Quartz.CGEventPost(Quartz.kCGHIDEventTap, key_down)
+        if not text:
+            return
 
-            key_up = Quartz.CGEventCreateKeyboardEvent(None, 0, False)
-            Quartz.CGEventKeyboardSetUnicodeString(key_up, len(character), character)
-            Quartz.CGEventPost(Quartz.kCGHIDEventTap, key_up)
+        previous_clipboard: bytes | None = None
+        try:
+            previous_clipboard = subprocess.run(
+                ["pbpaste"],
+                capture_output=True,
+                check=True,
+            ).stdout
+        except subprocess.CalledProcessError:
+            previous_clipboard = None
+
+        try:
+            subprocess.run(
+                ["pbcopy"],
+                check=True,
+                input=text.encode("utf-8"),
+            )
+            self._press_key_chord("v", ["command"])
+        finally:
+            if previous_clipboard is not None:
+                try:
+                    subprocess.run(
+                        ["pbcopy"],
+                        check=True,
+                        input=previous_clipboard,
+                    )
+                except subprocess.CalledProcessError:
+                    pass
         self._sleep_after_action()
 
     def keypress(self, keys: list[str]) -> None:

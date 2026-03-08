@@ -12,7 +12,10 @@ Demo (sending an email)
 
 
 
-https://github.com/user-attachments/assets/3b12f7b5-6b43-4a9a-8fd0-2984e07f6d50
+
+https://github.com/user-attachments/assets/4e9e0aca-4d48-4d34-a6a5-3646aafbd172
+
+
 
 
 

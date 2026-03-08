@@ -141,6 +141,49 @@ class RunComputerLoopTests(unittest.TestCase):
                 max_turns=1,
             )
 
+    def test_loop_accepts_uncapped_mode(self):
+        backend = FakeBackend()
+        client = FakeClient(
+            [
+                {
+                    "id": "resp_1",
+                    "output": [
+                        {
+                            "actions": [{"type": "screenshot"}],
+                            "call_id": "call_1",
+                            "type": "computer_call",
+                        }
+                    ],
+                },
+                {
+                    "id": "resp_2",
+                    "output": [
+                        {
+                            "content": [
+                                {
+                                    "text": "Done without an explicit cap.",
+                                    "type": "output_text",
+                                }
+                            ],
+                            "role": "assistant",
+                            "type": "message",
+                        }
+                    ],
+                },
+            ]
+        )
+
+        result = run_computer_loop(
+            backend=backend,
+            client=client,
+            model="gpt-5.4",
+            prompt="Do the thing",
+            max_turns=None,
+        )
+
+        self.assertEqual(result.final_message, "Done without an explicit cap.")
+        self.assertEqual(result.turns, 2)
+
 
 class MacComputerBackendTests(unittest.TestCase):
     def test_to_event_point_uses_screenshot_scale_and_clamps(self):

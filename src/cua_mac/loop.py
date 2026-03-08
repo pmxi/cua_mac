@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import itertools
 import json
 from typing import Any, Callable
 
@@ -26,7 +27,7 @@ def run_computer_loop(
     instructions: str = DEFAULT_INSTRUCTIONS,
     model: str,
     prompt: str,
-    max_turns: int,
+    max_turns: int | None,
     log: LogFn | None = None,
 ) -> LoopResult:
     logger = log or (lambda message: None)
@@ -46,7 +47,11 @@ def run_computer_loop(
         }
     ]
 
-    for turn in range(1, max_turns + 1):
+    turn_numbers = (
+        range(1, max_turns + 1) if max_turns is not None else itertools.count(1)
+    )
+
+    for turn in turn_numbers:
         request = {
             "input": next_input,
             "instructions": instructions,

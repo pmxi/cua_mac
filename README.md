@@ -28,7 +28,9 @@ uv run python -m cua_mac screenshot
 Run the loop:
 
 ```bash
-uv run python -m cua_mac run "Open Notes and create a note titled test"
+uv run python -m cua_mac run "Open Notes and create a note about yourself"
+uv run python -m cua_mac run "Open Firefox and navigate to Hacker News"
+
 ```
 
 Optional flags:
@@ -36,9 +38,10 @@ Optional flags:
 ```bash
 uv run python -m cua_mac run \
   --model gpt-5.4 \
-  --max-turns 200 \
   --action-delay-ms 120 \
   "Open Calculator and compute 17 * 24"
 ```
+
+`--max-turns` is optional. If omitted, the loop runs until the model returns a final response.
 
 Artifacts are written under `artifacts/<timestamp>/`.

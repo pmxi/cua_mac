@@ -1,16 +1,15 @@
 # `cua_mac`
 
-Minimal local macOS computer-use runner built on the OpenAI Responses API `computer` tool.
+Minimal computer use implementation for macOS (local!) using the latest GPT-5.4 native computer use support. To my knowledge, no other such implementation yet exists.
 
-It captures your live desktop, sends screenshots to the model, executes returned computer actions locally on macOS, captures the updated screen, and repeats until the model returns a final message.
+Here's an example command:
 
-## What It Does
+```bash
+uv run python -m cua_mac run "Open Firefox and navigate to Hacker News"
+```
 
-- Captures the current desktop as the initial model input
-- Executes batched `computer_call.actions[]` from the Responses API
-- Captures a fresh screenshot after each action batch
-- Sends that screenshot back as `computer_call_output`
-- Streams action logs to stdout while saving screenshots to disk
+The following is an AI-generated README:
+
 
 ## Requirements
 

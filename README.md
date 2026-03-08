@@ -8,6 +8,14 @@ Here's an example command:
 uv run python -m cua_mac run "Open Firefox and navigate to Hacker News"
 ```
 
+Demo:
+
+
+
+https://github.com/user-attachments/assets/3b12f7b5-6b43-4a9a-8fd0-2984e07f6d50
+
+
+
 The following is an AI-generated README:
 
 
